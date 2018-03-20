@@ -1,10 +1,14 @@
 package distributedmap;
 
-import org.jgroups.*;
+import org.jgroups.JChannel;
+import org.jgroups.Message;
+import org.jgroups.ReceiverAdapter;
+import org.jgroups.View;
 import org.jgroups.protocols.*;
 import org.jgroups.protocols.pbcast.GMS;
 import org.jgroups.protocols.pbcast.NAKACK2;
 import org.jgroups.protocols.pbcast.STABLE;
+import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.ProtocolStack;
 import org.jgroups.util.Util;
 
@@ -16,20 +20,33 @@ import java.net.InetAddress;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class DistributedStringMap extends ReceiverAdapter implements SimpleStringMap {
     private ProtocolStack protocolStack;
     private JChannel jChannel;
+    private final Logger logger;
     private Map<String, String> state = new ConcurrentHashMap<>();
 
     public DistributedStringMap() throws Exception {
+        logger = Logger.getLogger(this.getClass().getName());
+        logger.setLevel(NetworkConstants.LOGGING_LEVEL);
+
         initJGroupsConnection();
     }
 
     private void initJGroupsConnection() throws Exception {
+
 //        System.setProperty("java.net.preferIPv4Stack", "true");
         jChannel = new JChannel(false);
 
+        initProtocolStack();
+        jChannel.setReceiver(this);
+        jChannel.connect(NetworkConstants.CHANNEL_NAME);
+        jChannel.getState(null, 10000);
+    }
+
+    private void initProtocolStack() throws Exception {
         protocolStack = new ProtocolStack();
         jChannel.setProtocolStack(protocolStack);
         protocolStack.addProtocol(new UDP().setValue("mcast_group_addr", InetAddress.getByName(NetworkConstants.MULTICAST_IP_ADDRESS)))
@@ -45,12 +62,10 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
                 .addProtocol(new GMS())
                 .addProtocol(new UFC())
                 .addProtocol(new MFC())
+                .addProtocol(new STATE_TRANSFER())
                 .addProtocol(new FRAG2());
 
         protocolStack.init();
-        jChannel.setReceiver(this);
-        jChannel.connect(NetworkConstants.CHANNEL_NAME);
-        jChannel.getState();
     }
 
     @Override
@@ -72,30 +87,32 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
 
     @Override
     public String remove(String key) {
+//        TODO: Actual Remove
         final String val = this.state.remove(key);
-        updateDistr(new AbstractMap.SimpleEntry<>(key, null));
+        updateDistr(new AbstractMap.SimpleEntry<>(key, ""));
         return val;
     }
 
     @Override
     public void receive(Message msg) {
-        System.out.println("Received message: " + msg.toString());
+        logger.info("Received message: " + msg.toString());
         final Map.Entry<String, String> entry = (Map.Entry<String, String>) msg.getObject();
-        state.put(entry.getKey(), entry.getValue());
+        if(entry.getValue().equals("")){
+            state.remove(entry.getKey());
+        } else {
+            state.put(entry.getKey(), entry.getValue());
+        }
     }
 
     @Override
     public void viewAccepted(View view) {
-        System.out.println("** view: " + view);
+        logger.info("** nodes: " + view.getMembers());
     }
 
     @Override
     public synchronized void getState(OutputStream output) throws Exception {
+        this.logger.info("Getting state");
         Util.objectToStream(state, new DataOutputStream(output));
-//        DictionaryProtos.Dictionary dict = DictionaryProtos.Dictionary.newBuilder().putAllType(hashMapState).build();
-//        System.out.println(Arrays.toString(dict.getTypeMap().values().toArray()));
-//        dict.writeTo(CodedOutputStream.newInstance(output));
-//        super.getState(output);
     }
 
     @Override
@@ -103,15 +120,7 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
         Map<String,String> map=(Map<String,String>)Util.objectFromStream(new DataInputStream(input));
         state.clear();
         state.putAll(map);
-        System.out.println("received state (" + map.size() + " messages in chat history):");
-        for(String str: map.values()) {
-            System.out.println(str);
-        }
-//        DictionaryProtos.Dictionary dict = DictionaryProtos.Dictionary.parseFrom(input);
-//        System.out.println("State set: " + Arrays.toString(state.values().toArray()));
-//        this.state.clear();
-//        this.state.putAll(dict.getTypeMap());
-//        super.setState(input);
+        logger.info("received state (" + map.size() + " hashmap entries):");
     }
 
     private void updateDistr(Map.Entry<String, String> mapEntry){
@@ -121,12 +130,5 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
         } catch (Exception e) {
             e.printStackTrace();
         }
-//        DictionaryProtos.Dictionary dict = DictionaryProtos.Dictionary.newBuilder().putAllType(this.receiver.getHashMapState()).build();
-//        Message msg = new Message(null, null, dict);
-//        try {
-//            this.jChannel.send(msg);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
     }
 }
