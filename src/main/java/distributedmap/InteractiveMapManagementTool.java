@@ -16,46 +16,70 @@ public class InteractiveMapManagementTool {
         while (true) {
             System.out.print("> ");
             String command = br.readLine().toLowerCase();
-            switch (command) {
-                case "put":
-                    this.handlePutOperation();
-                    break;
-                case "read":
-                    this.handleReadOperation();
-                    break;
-                case "has":
-                    this.handleContainsOperation();
-                    break;
-                case "del":
-                    this.handleRemoveOperation();
-                    break;
+            if (command.startsWith("put")) {
+                this.handlePutOperation(command);
+
+            } else if (command.startsWith("read")) {
+                this.handleReadOperation(command);
+
+            } else if (command.startsWith("has")) {
+                this.handleContainsOperation(command);
+
+            } else if (command.startsWith("del")) {
+                this.handleRemoveOperation(command);
+            } else {
+                System.out.println("Not a valid operation, possible are: put, read, has, del");
             }
         }
     }
 
-    private void handleRemoveOperation() throws IOException {
-        System.out.print("Enter key: ");
-        String key = br.readLine();
-        System.out.println("Removed value: " + map.remove(key));
+    private void handleRemoveOperation(String command) throws IOException {
+        final String[] splittedCommand = command.split(" ");
+        String key = getKey(splittedCommand);
+        final String value = map.remove(key);
+        if(value != null) {
+            System.out.println("Removed value: " + value);
+        } else {
+            System.out.println("No such value!");
+        }
     }
 
-    private void handleContainsOperation() throws IOException {
-        System.out.print("Enter key: ");
-        String key = br.readLine();
+    private void handleContainsOperation(String command) throws IOException {
+        final String[] splittedCommand = command.split(" ");
+        String key = getKey(splittedCommand);
         System.out.println(map.containsKey(key));
     }
 
-    private void handleReadOperation() throws IOException {
-        System.out.print("Enter key: ");
-        String key = br.readLine();
-        System.out.println(map.get(key));
+    private void handleReadOperation(String command) throws IOException {
+        final String[] splittedCommand = command.split(" ");
+        String key = getKey(splittedCommand);
+        final String value = map.get(key);
+        System.out.println(value != null ? value : "No such entry in the map!");
     }
 
-    private void handlePutOperation() throws IOException {
-        System.out.print("Enter Key: ");
-        String key = br.readLine();
-        System.out.print("Enter Value: ");
-        String value = br.readLine();
+    private String getKey(String[] splittedCommand) throws IOException {
+        String key;
+        if(splittedCommand.length < 2){
+            System.out.print("Enter key: ");
+            key = br.readLine();
+        } else {
+            key = splittedCommand[1];
+        }
+        return key;
+    }
+
+    private void handlePutOperation(String command) throws IOException {
+        final String[] splittedCommand = command.split(" ");
+        String key, value;
+        if(splittedCommand.length < 3){
+            System.out.print("Enter key: ");
+            key = br.readLine();
+            System.out.print("Enter Value: ");
+            value = br.readLine();
+        } else {
+            key = splittedCommand[1];
+            value = splittedCommand[2];
+        }
         this.map.put(key, value);
     }
 }

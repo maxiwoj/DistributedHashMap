@@ -10,6 +10,7 @@ import org.jgroups.protocols.pbcast.NAKACK2;
 import org.jgroups.protocols.pbcast.STABLE;
 import org.jgroups.protocols.pbcast.STATE_TRANSFER;
 import org.jgroups.stack.ProtocolStack;
+import org.jgroups.util.SuppressLog;
 import org.jgroups.util.Util;
 
 import java.io.DataInputStream;
@@ -36,8 +37,8 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
     }
 
     private void initJGroupsConnection() throws Exception {
+        System.setProperty("java.net.preferIPv4Stack", "true");
 
-//        System.setProperty("java.net.preferIPv4Stack", "true");
         jChannel = new JChannel(false);
 
         initProtocolStack();
@@ -81,23 +82,24 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
     @Override
     public String put(String key, String value) {
         final String val = this.state.put(key, value);
-        updateDistr(new AbstractMap.SimpleEntry<>(key, value));
+        updateDistr(new MapEntry(key, value, MapEntry.OperationType.PUT));
         return val;
     }
 
     @Override
     public String remove(String key) {
-//        TODO: Actual Remove
         final String val = this.state.remove(key);
-        updateDistr(new AbstractMap.SimpleEntry<>(key, ""));
+        if (val != null) {
+            updateDistr(new MapEntry(key, MapEntry.OperationType.REMOVE));
+        }
         return val;
     }
 
     @Override
     public void receive(Message msg) {
         logger.info("Received message: " + msg.toString());
-        final Map.Entry<String, String> entry = (Map.Entry<String, String>) msg.getObject();
-        if(entry.getValue().equals("")){
+        final MapEntry entry = (MapEntry) msg.getObject();
+        if(entry.getOperationType() == MapEntry.OperationType.REMOVE){
             state.remove(entry.getKey());
         } else {
             state.put(entry.getKey(), entry.getValue());
@@ -123,7 +125,7 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
         logger.info("received state (" + map.size() + " hashmap entries):");
     }
 
-    private void updateDistr(Map.Entry<String, String> mapEntry){
+    private void updateDistr(MapEntry mapEntry){
         Message msg = new Message(null, null, mapEntry);
         try {
             jChannel.send(msg);
