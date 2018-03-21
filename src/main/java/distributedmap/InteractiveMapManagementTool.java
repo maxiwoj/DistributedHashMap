@@ -13,21 +13,27 @@ public class InteractiveMapManagementTool {
     }
 
     public void runCommandLine() throws IOException {
-        while (true) {
+        boolean end = false;
+        while (!end) {
             System.out.print("> ");
-            String command = br.readLine().toLowerCase();
-            if (command.startsWith("put")) {
+            String command = br.readLine();
+            String lowerCommand = command.replaceAll("\\s+","").toLowerCase();
+            if (lowerCommand.startsWith("put")) {
                 this.handlePutOperation(command);
 
-            } else if (command.startsWith("read")) {
+            } else if (lowerCommand.startsWith("read")) {
                 this.handleReadOperation(command);
 
-            } else if (command.startsWith("has")) {
+            } else if (lowerCommand.startsWith("has")) {
                 this.handleContainsOperation(command);
 
-            } else if (command.startsWith("del")) {
+            } else if (lowerCommand.startsWith("del")) {
                 this.handleRemoveOperation(command);
+            } else if(lowerCommand.startsWith("exit")) {
+                end = true;
+                System.out.println("Goodbye!");
             } else {
+
                 System.out.println("Not a valid operation, possible are: put, read, has, del");
             }
         }

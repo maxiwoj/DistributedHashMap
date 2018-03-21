@@ -31,7 +31,6 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
 
     public DistributedStringMap() throws Exception {
         logger = Logger.getLogger(this.getClass().getName());
-        logger.setLevel(NetworkConstants.LOGGING_LEVEL);
 
         initJGroupsConnection();
     }
