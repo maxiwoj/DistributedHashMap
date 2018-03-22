@@ -1,16 +1,9 @@
 package distributedmap;
 
-import org.jgroups.JChannel;
-import org.jgroups.Message;
-import org.jgroups.ReceiverAdapter;
-import org.jgroups.View;
+import org.jgroups.*;
 import org.jgroups.protocols.*;
-import org.jgroups.protocols.pbcast.GMS;
-import org.jgroups.protocols.pbcast.NAKACK2;
-import org.jgroups.protocols.pbcast.STABLE;
-import org.jgroups.protocols.pbcast.STATE_TRANSFER;
+import org.jgroups.protocols.pbcast.*;
 import org.jgroups.stack.ProtocolStack;
-import org.jgroups.util.SuppressLog;
 import org.jgroups.util.Util;
 
 import java.io.DataInputStream;
@@ -18,7 +11,6 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
-import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -107,6 +99,10 @@ public class DistributedStringMap extends ReceiverAdapter implements SimpleStrin
 
     @Override
     public void viewAccepted(View view) {
+        if(view instanceof MergeView) {
+            MergeViewHandler handler = new MergeViewHandler(jChannel, (MergeView) view);
+            handler.start();
+        }
         logger.info("** nodes: " + view.getMembers());
     }
 
