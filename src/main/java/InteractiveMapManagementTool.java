@@ -20,13 +20,10 @@ public class InteractiveMapManagementTool {
             String lowerCommand = command.replaceAll("\\s+","").toLowerCase();
             if (lowerCommand.startsWith("put")) {
                 this.handlePutOperation(command);
-
             } else if (lowerCommand.startsWith("read")) {
                 this.handleReadOperation(command);
-
             } else if (lowerCommand.startsWith("has")) {
                 this.handleContainsOperation(command);
-
             } else if (lowerCommand.startsWith("del")) {
                 this.handleRemoveOperation(command);
             } else if(lowerCommand.startsWith("exit")) {

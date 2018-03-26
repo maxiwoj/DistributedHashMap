@@ -33,7 +33,7 @@ public class MergeViewHandler extends Thread {
             }
         }
         else {
-            System.out.println("Not member of the new primary partition (" + tmp_view + "), will do nothing");
+            System.out.println("Member of the new primary partition (" + tmp_view + "), will do nothing");
         }
     }
 }
