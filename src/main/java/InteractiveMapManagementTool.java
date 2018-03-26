@@ -1,4 +1,4 @@
-package distributedmap;
+import distributedmap.DistributedStringMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
